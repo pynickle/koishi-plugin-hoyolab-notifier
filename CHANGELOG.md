@@ -1,3 +1,9 @@
+## 1.0.0 (2025-10-31)
+
+### ✨ Features
+
+* initial release ([aa96fb9](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/aa96fb9c717c15d89b1d4364c731e50ef7c27395))
+
 ## [1.7.0](https://github.com/pynickle/koishi-plugin-echo-cave/compare/v1.6.5...v1.7.0) (2025-10-29)
 
 ### ✨ Features
