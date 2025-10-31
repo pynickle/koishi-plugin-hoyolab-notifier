@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.1...v1.0.2) (2025-10-31)
+
+### 🐛 Bug Fixes
+
+* store all articles into database in advance ([eed8408](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/eed8408c16df92b94f94471bdd172f036af49317))
+
 ## [1.0.1](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.0...v1.0.1) (2025-10-31)
 
 ### 🐛 Bug Fixes
