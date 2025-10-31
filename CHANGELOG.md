@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.0...v1.0.1) (2025-10-31)
+
+### 🐛 Bug Fixes
+
+* fix multiple articles during first check ([68476b9](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/68476b972fc87bfb9766b76aefa18f504d980b80))
+
 ## 1.0.0 (2025-10-31)
 
 ### ✨ Features
