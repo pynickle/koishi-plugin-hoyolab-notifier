@@ -154,18 +154,40 @@ export async function checkAndSendNewPosts(
                 existingPosts.map((p) => p.post_id)
             );
 
-            // 检查新文章
-            const newPosts = posts.filter(
-                (post) => !existingPostIds.has(post.post.post_id)
-            );
-
-            if (newPosts.length === 0) {
-                console.log(`UID ${uid} 没有新文章`);
-                continue;
+            // 先将所有获取到的文章存入数据库
+            for (const post of posts) {
+                if (!existingPostIds.has(post.post.post_id)) {
+                    try {
+                        await ctx.database.create('hoyolab_posts', {
+                            uid,
+                            post_id: post.post.post_id,
+                            title: post.post.subject,
+                            updated_at: post.post.updated_at,
+                            sent_groups: '', // 初始为空，后续会根据实际发送情况更新
+                        });
+                    } catch (error) {
+                        console.warn(
+                            `保存文章 ${post.post.post_id} 到数据库失败:`,
+                            error
+                        );
+                    }
+                }
             }
 
-            // 只处理最新的一篇文章
-            const latestPost = newPosts[0];
+            // 只检查最新的一篇文章是否需要发送
+            const latestPost = posts[0];
+
+            // 检查最新文章是否已发送
+            const latestPostExists = await ctx.database.get('hoyolab_posts', {
+                uid,
+                post_id: latestPost.post.post_id,
+                sent_groups: { $regex: groupIds.join('|') },
+            });
+
+            if (latestPostExists.length > 0) {
+                console.log(`UID ${uid} 的最新文章已发送过，跳过`);
+                continue;
+            }
             console.log(
                 `UID ${uid} 发现新文章（群聊通知），准备发送到 ${groupIds.length} 个群聊`
             );
@@ -323,14 +345,43 @@ export async function checkAndSendNewPosts(
                     }
                 }
 
-                // 记录到数据库
-                await ctx.database.create('hoyolab_posts', {
+                // 更新已发送的文章记录
+                const existingPost = await ctx.database.get('hoyolab_posts', {
                     uid,
                     post_id: latestPost.post.post_id,
-                    title: latestPost.post.subject,
-                    updated_at: latestPost.post.updated_at,
-                    sent_groups: groupIds.join(','),
                 });
+
+                if (existingPost.length > 0) {
+                    let currentGroups = existingPost[0].sent_groups.split(',');
+                    // 过滤掉空字符串
+                    currentGroups = currentGroups.filter((g) => g);
+
+                    for (const groupId of groupIds) {
+                        if (!currentGroups.includes(groupId)) {
+                            currentGroups.push(groupId);
+                        }
+                    }
+
+                    await ctx.database.set(
+                        'hoyolab_posts',
+                        {
+                            uid,
+                            post_id: latestPost.post.post_id,
+                        },
+                        {
+                            sent_groups: currentGroups.join(','),
+                        }
+                    );
+                } else {
+                    // 以防之前保存失败，这里再尝试一次
+                    await ctx.database.create('hoyolab_posts', {
+                        uid,
+                        post_id: latestPost.post.post_id,
+                        title: latestPost.post.subject,
+                        updated_at: latestPost.post.updated_at,
+                        sent_groups: groupIds.join(','),
+                    });
+                }
             } catch (error) {
                 ctx.logger('hoyolab-notifier').warn(
                     `处理文章 ${latestPost.post.post_id} 时发生错误:`,
@@ -390,101 +441,122 @@ async function processUserSubscriptions(
                 // 按更新时间排序，最新的在前
                 posts.sort((a, b) => b.post.updated_at - a.post.updated_at);
 
+                // 先将所有获取到的文章存入数据库
+                for (const post of posts) {
+                    try {
+                        const existingPost = await ctx.database.get(
+                            'hoyolab_posts',
+                            {
+                                uid: targetUid,
+                                post_id: post.post.post_id,
+                            }
+                        );
+
+                        if (existingPost.length === 0) {
+                            await ctx.database.create('hoyolab_posts', {
+                                uid: targetUid,
+                                post_id: post.post.post_id,
+                                title: post.post.subject,
+                                updated_at: post.post.updated_at,
+                                sent_groups: '', // 初始为空，后续会根据实际发送情况更新
+                            });
+                        }
+                    } catch (error) {
+                        console.warn(
+                            `保存文章 ${post.post.post_id} 到数据库失败:`,
+                            error
+                        );
+                    }
+                }
+
                 // 为每个订阅者检查并发送新文章
                 for (const sub of subs) {
                     try {
-                        // 检查文章是否符合订阅条件
-                        for (const post of posts) {
-                            // 检查是否已被删除
-                            if (post.post.deleted_at > 0) {
-                                continue;
-                            }
+                        // 只检查最新的一篇文章
+                        const latestPost = posts[0];
 
-                            // 检查正则表达式筛选
-                            if (sub.title_regex) {
-                                try {
-                                    const regex = new RegExp(sub.title_regex);
-                                    if (!regex.test(post.post.subject)) {
-                                        continue;
-                                    }
-                                } catch (error) {
-                                    ctx.logger('hoyolab-notifier').warn(
-                                        `订阅者 ${sub.user_id} 的正则表达式错误:`,
-                                        error
-                                    );
+                        // 检查是否已被删除
+                        if (latestPost.post.deleted_at > 0) {
+                            continue;
+                        }
+
+                        // 检查正则表达式筛选
+                        if (sub.title_regex) {
+                            try {
+                                const regex = new RegExp(sub.title_regex);
+                                if (!regex.test(latestPost.post.subject)) {
                                     continue;
                                 }
-                            }
-
-                            // 检查是否已经发送给该用户和频道的组合
-                            const existingRecords = await ctx.database.get(
-                                'hoyolab_posts',
-                                {
-                                    uid: targetUid,
-                                    post_id: post.post.post_id,
-                                    sent_groups: {
-                                        $regex: `${sub.user_id}:${sub.channel_id}`,
-                                    },
-                                }
-                            );
-
-                            if (existingRecords.length > 0) {
-                                // 已经发送过，跳过
+                            } catch (error) {
+                                ctx.logger('hoyolab-notifier').warn(
+                                    `订阅者 ${sub.user_id} 的正则表达式错误:`,
+                                    error
+                                );
                                 continue;
                             }
-
-                            // 发送给订阅用户
-                            await sendPostToSubscribedUser(ctx, post, sub);
-
-                            // 记录到数据库
-                            // 查找现有记录
-                            const existingPost = await ctx.database.get(
-                                'hoyolab_posts',
-                                {
-                                    uid: targetUid,
-                                    post_id: post.post.post_id,
-                                }
-                            );
-
-                            // 使用 user_id:channel_id 格式存储，确保每个频道独立
-                            const userChannelKey = `${sub.user_id}:${sub.channel_id}`;
-
-                            if (existingPost.length > 0) {
-                                // 更新现有记录的 sent_groups
-                                const currentSentGroups =
-                                    existingPost[0].sent_groups.split(',');
-                                if (
-                                    !currentSentGroups.includes(userChannelKey)
-                                ) {
-                                    currentSentGroups.push(userChannelKey);
-                                    await ctx.database.set(
-                                        'hoyolab_posts',
-                                        {
-                                            uid: targetUid,
-                                            post_id: post.post.post_id,
-                                        },
-                                        {
-                                            sent_groups:
-                                                currentSentGroups.join(','),
-                                        }
-                                    );
-                                }
-                            } else {
-                                // 创建新记录
-                                await ctx.database.create('hoyolab_posts', {
-                                    uid: targetUid,
-                                    post_id: post.post.post_id,
-                                    title: post.post.subject,
-                                    updated_at: post.post.updated_at,
-                                    sent_groups: userChannelKey,
-                                });
-                            }
-
-                            console.log(
-                                `已在群聊 ${sub.channel_id} 向用户 ${sub.user_id} 发送订阅的文章 ${post.post.post_id}`
-                            );
-                            break; // 每个用户只发送最新的一篇未读文章
                         }
+
+                        // 使用 user_id:channel_id 格式存储，确保每个频道独立
+                        const userChannelKey = `${sub.user_id}:${sub.channel_id}`;
+
+                        // 检查是否已经发送给该用户和频道的组合
+                        const existingRecords = await ctx.database.get(
+                            'hoyolab_posts',
+                            {
+                                uid: targetUid,
+                                post_id: latestPost.post.post_id,
+                                sent_groups: {
+                                    $regex: userChannelKey,
+                                },
+                            }
+                        );
+
+                        if (existingRecords.length > 0) {
+                            // 已经发送过，跳过
+                            continue;
+                        }
+
+                        // 发送给订阅用户
+                        await sendPostToSubscribedUser(ctx, latestPost, sub);
+
+                        // 更新数据库记录
+                        const existingPost = await ctx.database.get(
+                            'hoyolab_posts',
+                            {
+                                uid: targetUid,
+                                post_id: latestPost.post.post_id,
+                            }
+                        );
+
+                        if (existingPost.length > 0) {
+                            // 更新现有记录的 sent_groups
+                            let currentSentGroups =
+                                existingPost[0].sent_groups.split(',');
+                            // 过滤掉空字符串
+                            currentSentGroups = currentSentGroups.filter(
+                                (g) => g
+                            );
+
+                            if (!currentSentGroups.includes(userChannelKey)) {
+                                currentSentGroups.push(userChannelKey);
+                                await ctx.database.set(
+                                    'hoyolab_posts',
+                                    {
+                                        uid: targetUid,
+                                        post_id: latestPost.post.post_id,
+                                    },
+                                    {
+                                        sent_groups:
+                                            currentSentGroups.join(','),
+                                    }
+                                );
+                            }
+                        }
+
+                        console.log(
+                            `已在群聊 ${sub.channel_id} 向用户 ${sub.user_id} 发送订阅的文章 ${latestPost.post.post_id}`
+                        );
+                        // 只处理一篇文章
                     } catch (error) {
                         ctx.logger('hoyolab-notifier').warn(
                             `处理用户 ${sub.user_id} 的订阅时发生错误:`,
