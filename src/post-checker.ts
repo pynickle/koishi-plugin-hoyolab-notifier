@@ -85,11 +85,11 @@ async function fetchUserPosts(
             return response.data.data.list;
         } else {
             // 直接记录错误，不抛出异常
-            console.error(`API 错误：${response.data.message}`);
+            console.warn(`API 错误：${response.data.message}`);
             return [];
         }
     } catch (error) {
-        console.error(`获取 UID ${uid} 的文章失败:`, error);
+        console.warn(`获取 UID ${uid} 的文章失败:`, error);
         return [];
     }
 }
@@ -164,14 +164,18 @@ export async function checkAndSendNewPosts(
                 continue;
             }
 
+            // 只处理最新的一篇文章
+            const latestPost = newPosts[0];
             console.log(
-                `UID ${uid} 发现 ${newPosts.length} 篇新文章（群聊通知）`
+                `UID ${uid} 发现新文章（群聊通知），准备发送到 ${groupIds.length} 个群聊`
             );
 
-            // 处理每篇新文章
-            for (const post of newPosts) {
+            try {
                 // 检查是否已被删除
-                if (post.post.deleted_at > 0) {
+                if (latestPost.post.deleted_at > 0) {
+                    console.log(
+                        `最新文章 ${latestPost.post.post_id} 已被删除，跳过发送`
+                    );
                     continue;
                 }
 
@@ -182,13 +186,18 @@ export async function checkAndSendNewPosts(
                             (b) => b.platform === 'onebot'
                         );
                         if (!bot) {
-                            console.error('未找到 onebot 平台的机器人');
+                            ctx.logger('hoyolab-notifier').warn(
+                                '未找到 onebot 平台的机器人'
+                            );
                             continue;
                         }
 
                         // 创建合并转发消息节点数组
                         const nodes: any[] = [
-                            createBotTextMsgNode(bot, formatPostInfo(post)),
+                            createBotTextMsgNode(
+                                bot,
+                                formatPostInfo(latestPost)
+                            ),
                         ];
 
                         // 添加文章内容标题
@@ -199,11 +208,11 @@ export async function checkAndSendNewPosts(
                         );
 
                         // 解析结构化内容并添加到合并转发中
-                        if (post.post.structured_content) {
+                        if (latestPost.post.structured_content) {
                             // 将文章内容转换为带分割点信息的 CQCode 数组
                             const { items: contentCQCode, splitPoints } =
                                 parseStructuredContentWithSplits(
-                                    post.post.structured_content
+                                    latestPost.post.structured_content
                                 );
 
                             // 根据分割点分段处理内容
@@ -271,9 +280,9 @@ export async function checkAndSendNewPosts(
 
                         // 如果有图片列表且没有结构化内容，将图片也添加到合并转发中（作为补充）
                         if (
-                            !post.post.structured_content &&
-                            post.image_list &&
-                            post.image_list.length > 0
+                            !latestPost.post.structured_content &&
+                            latestPost.image_list &&
+                            latestPost.image_list.length > 0
                         ) {
                             nodes.push(
                                 createBotTextMsgNode(bot, [
@@ -284,7 +293,7 @@ export async function checkAndSendNewPosts(
                                 ])
                             );
 
-                            for (const image of post.image_list) {
+                            for (const image of latestPost.image_list) {
                                 const imageUrl = image.url.replace(/\s/g, '');
                                 nodes.push(
                                     createBotTextMsgNode(bot, [
@@ -304,10 +313,10 @@ export async function checkAndSendNewPosts(
                         }
 
                         console.log(
-                            `已向群 ${groupId} 发送文章 ${post.post.post_id} 的合并转发通知及内容`
+                            `已向群 ${groupId} 发送文章 ${latestPost.post.post_id} 的合并转发通知及内容`
                         );
                     } catch (error) {
-                        console.error(
+                        ctx.logger('hoyolab-notifier').warn(
                             `向群 ${groupId} 发送文章通知失败:`,
                             error
                         );
@@ -317,14 +326,22 @@ export async function checkAndSendNewPosts(
                 // 记录到数据库
                 await ctx.database.create('hoyolab_posts', {
                     uid,
-                    post_id: post.post.post_id,
-                    title: post.post.subject,
-                    updated_at: post.post.updated_at,
+                    post_id: latestPost.post.post_id,
+                    title: latestPost.post.subject,
+                    updated_at: latestPost.post.updated_at,
                     sent_groups: groupIds.join(','),
                 });
+            } catch (error) {
+                ctx.logger('hoyolab-notifier').warn(
+                    `处理文章 ${latestPost.post.post_id} 时发生错误:`,
+                    error
+                );
             }
         } catch (error) {
-            console.error(`处理 UID ${uid} 时发生错误:`, error);
+            ctx.logger('hoyolab-notifier').warn(
+                `处理 UID ${uid} 时发生错误:`,
+                error
+            );
         }
     }
 
@@ -391,7 +408,7 @@ async function processUserSubscriptions(
                                         continue;
                                     }
                                 } catch (error) {
-                                    console.error(
+                                    ctx.logger('hoyolab-notifier').warn(
                                         `订阅者 ${sub.user_id} 的正则表达式错误:`,
                                         error
                                     );
@@ -469,21 +486,21 @@ async function processUserSubscriptions(
                             break; // 每个用户只发送最新的一篇未读文章
                         }
                     } catch (error) {
-                        console.error(
+                        ctx.logger('hoyolab-notifier').warn(
                             `处理用户 ${sub.user_id} 的订阅时发生错误:`,
                             error
                         );
                     }
                 }
             } catch (error) {
-                console.error(
+                ctx.logger('hoyolab-notifier').warn(
                     `处理目标 UID ${targetUid} 的订阅时发生错误:`,
                     error
                 );
             }
         }
     } catch (error) {
-        console.error('处理用户订阅时发生错误：', error);
+        ctx.logger('hoyolab-notifier').warn('处理用户订阅时发生错误：', error);
     }
 }
 
@@ -641,6 +658,6 @@ export async function cleanupOldPosts(ctx: Context): Promise<void> {
             }
         }
     } catch (error) {
-        console.error('清理过期文章记录失败：', error);
+        ctx.logger('hoyolab-notifier').warn('清理过期文章记录失败：', error);
     }
 }
