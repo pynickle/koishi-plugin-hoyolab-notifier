@@ -113,7 +113,7 @@ function formatPostInfo(post: PostItem): string {
     result += `🔗 链接：https://bbs.mihoyo.com/ys/article/${post.post.post_id}\n`;
 
     // 添加板块信息
-    result += `🏷️ 板块：${post.forum.name}\n`;
+    result += `🏷️ 板块：${post.forum.name}`;
 
     return result;
 }
