@@ -1,3 +1,13 @@
+## [1.0.3](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.2...v1.0.3) (2025-11-02)
+
+### 🐛 Bug Fixes
+
+* remove extra space in message ([42acdb0](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/42acdb0f6d3bd42dbe2c5bdc5b5c8e8bad0c2ac9))
+
+### 🚀 Improvements
+
+* imp space ([f0793b4](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/f0793b4147b533f98b8be188cafdbd7dd4851951))
+
 ## [1.0.2](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.1...v1.0.2) (2025-10-31)
 
 ### 🐛 Bug Fixes
