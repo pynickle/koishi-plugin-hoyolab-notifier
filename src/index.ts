@@ -140,7 +140,7 @@ export function apply(ctx: Context, cfg: Config) {
         let result = '📋 米游社文章监听配置\n\n';
         cfg.watchedUsers.forEach((user, index) => {
             result += `${index + 1}. UID: ${user.uid}\n`;
-            result += `   群聊: ${user.groupIds.length > 0 ? user.groupIds.join(', ') : '未配置'}\n\n`;
+            result += `   群聊：${user.groupIds.length > 0 ? user.groupIds.join(', ') : '未配置'}\n\n`;
         });
 
         return result;
@@ -171,7 +171,7 @@ export function apply(ctx: Context, cfg: Config) {
                 }
 
                 // 获取用户信息
-                let targetName = uid; // 默认使用UID作为名称
+                let targetName = uid; // 默认使用 UID 作为名称
                 try {
                     const response = await axios.get(
                         `https://bbs-api.miyoushe.com/user/wapi/getUserFullInfo?uid=${uid}`,
@@ -193,7 +193,7 @@ export function apply(ctx: Context, cfg: Config) {
                     }
                 } catch (error) {
                     console.error(`获取用户 ${uid} 信息失败:`, error);
-                    // 继续执行，使用UID作为名称
+                    // 继续执行，使用 UID 作为名称
                 }
 
                 // 检查是否已订阅
@@ -270,9 +270,9 @@ export function apply(ctx: Context, cfg: Config) {
                 let result = '📋 您在所有群聊的米游社订阅列表\n\n';
                 subscriptions.forEach((sub, index) => {
                     result += `${index + 1}. ${sub.target_name || sub.target_uid}（UID: ${sub.target_uid}）\n`;
-                    result += `   群聊: ${sub.channel_id}\n`;
-                    result += `   正则表达式: ${sub.title_regex || '无（订阅所有）'}\n`;
-                    result += `   订阅时间: ${new Date(sub.created_at).toLocaleString('zh-CN')}\n\n`;
+                    result += `   群聊：${sub.channel_id}\n`;
+                    result += `   正则表达式：${sub.title_regex || '无（订阅所有）'}\n`;
+                    result += `   订阅时间：${new Date(sub.created_at).toLocaleString('zh-CN')}\n\n`;
                 });
 
                 result +=
@@ -283,8 +283,8 @@ export function apply(ctx: Context, cfg: Config) {
             let result = `📋 您在此群聊的米游社订阅列表\n\n`;
             subscriptions.forEach((sub, index) => {
                 result += `${index + 1}. ${sub.target_name || sub.target_uid}（UID: ${sub.target_uid}）\n`;
-                result += `   正则表达式: ${sub.title_regex || '无（订阅所有）'}\n`;
-                result += `   订阅时间: ${new Date(sub.created_at).toLocaleString('zh-CN')}\n\n`;
+                result += `   正则表达式：${sub.title_regex || '无（订阅所有）'}\n`;
+                result += `   订阅时间：${new Date(sub.created_at).toLocaleString('zh-CN')}\n\n`;
             });
 
             result +=

@@ -137,14 +137,14 @@ export function parseStructuredContentWithSplits(
                 // 标记视频信息作为分割点
                 splitPoints.push(cqCodeItems.length);
 
-                // 如果视频超过1分钟，则直接显示链接而不是使用video类型的CQCode
+                // 如果视频超过 1 分钟，则直接显示链接而不是使用 video 类型的 CQCode
                 if (videoDurationSeconds > 60) {
                     cqCodeItems.push({
                         type: 'text',
                         data: { text: `🔗 视频链接：${videoUrl}` },
                     });
                 } else {
-                    // 短视频使用video CQCode
+                    // 短视频使用 video CQCode
                     cqCodeItems.push({
                         type: 'video',
                         data: { file: videoUrl },
