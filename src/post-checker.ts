@@ -701,34 +701,40 @@ async function sendPostToSubscribedUser(
     }
 }
 
-// 清理过期的文章记录（保留最近 100 篇）
+// 清理过期的文章记录（保留最近 50 篇）
 export async function cleanupOldPosts(ctx: Context): Promise<void> {
     try {
-        const allUsers = await ctx.database
-            .select('hoyolab_posts')
-            .groupBy('uid')
-            .execute();
+        // 获取所有文章的 uid 并去重
+        const posts = await ctx.database.get('hoyolab_posts', {}, ['uid']);
+        const uniqueUids = new Set(posts.map((p) => p.uid));
+        let totalDeleted = 0;
 
-        for (const user of allUsers) {
-            const uid = user.uid;
-            const posts = await ctx.database.get(
-                'hoyolab_posts',
-                { uid },
-                {
-                    sort: { updated_at: 'desc' },
-                    offset: 100,
-                }
-            );
+        // 对每个用户分别处理
+        for (const uid of uniqueUids) {
+            // 获取用户的所有文章
+            const userPosts = await ctx.database
+                .select('hoyolab_posts')
+                .where({ uid })
+                .orderBy('updated_at', 'desc')
+                .execute();
 
-            if (posts.length > 0) {
+            // 如果文章数量超过 50 篇，则删除多余的
+            if (userPosts.length > 50) {
+                const postsToDelete = userPosts.slice(50);
+                const postIds = postsToDelete.map((p) => p.post_id);
+
                 await ctx.database.remove('hoyolab_posts', {
-                    id: posts.map((p) => p.id),
+                    uid,
+                    post_id: { $in: postIds },
                 });
-                console.log(
-                    `已清理 UID ${uid} 的 ${posts.length} 条过期文章记录`
-                );
+
+                totalDeleted += postsToDelete.length;
             }
         }
+
+        ctx.logger('hoyolab-notifier').info(
+            `清理过期文章记录完成，共删除 ${totalDeleted} 条记录`
+        );
     } catch (error) {
         ctx.logger('hoyolab-notifier').warn('清理过期文章记录失败：', error);
     }
