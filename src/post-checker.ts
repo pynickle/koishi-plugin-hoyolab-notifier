@@ -593,7 +593,7 @@ async function sendPostToSubscribedUser(
     // 创建@用户的消息
     const atMsg = [`[CQ:at,qq=${userId}] `];
     const targetName = subscription.target_name || subscription.target_uid;
-    atMsg.push(`您订阅的用户 ${targetName} 发布了新文章！\n`);
+    atMsg.push(`您订阅的用户 ${targetName} 发布了新文章！`);
 
     // 发送@消息到群聊
     await bot.internal.sendGroupMsg(channelId, atMsg.join(''));
