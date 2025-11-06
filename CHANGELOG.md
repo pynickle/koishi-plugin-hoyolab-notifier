@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.3...v1.0.4) (2025-11-06)
+
+### 🐛 Bug Fixes
+
+* fix clean up old posts can not work properly ([c619eb3](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/c619eb38293a694970a5113d063f3b04ec14e83f))
+
 ## [1.0.3](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.2...v1.0.3) (2025-11-02)
 
 ### 🐛 Bug Fixes

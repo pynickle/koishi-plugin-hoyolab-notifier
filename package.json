@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-hoyolab-notifier",
   "description": "Hoyolab Notifier Plugin for Koishi",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "lib/index.cjs",
   "typings": "lib/index.d.ts",
   "type": "module",
