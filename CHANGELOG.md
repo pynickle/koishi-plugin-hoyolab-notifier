@@ -1,3 +1,9 @@
+## [1.0.6](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.5...v1.0.6) (2025-12-04)
+
+### 🔧 Miscellaneous Changes
+
+* use oxfmt and oxlint, update dependencies ([1e57732](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/1e57732740677716cfe25cd8515d7d3a30c98db1))
+
 ## [1.0.5](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.4...v1.0.5) (2025-11-06)
 
 ### 🚀 Improvements
