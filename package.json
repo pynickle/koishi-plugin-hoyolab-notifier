@@ -11,8 +11,9 @@
   ],
   "license": "MIT",
   "scripts": {
-    "lint": "eslint ./src --ext .ts",
-    "lint:fix": "eslint ./src --ext .ts --fix",
+    "lint": "npx oxlint ./src",
+    "lint:fix": "npx oxlint ./src --fix",
+    "fmt": "npx oxfmt ./src",
     "build": "node esbuild.config.js && tsc --emitDeclarationOnly",
     "release": "semantic-release"
   },
