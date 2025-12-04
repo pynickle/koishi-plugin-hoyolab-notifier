@@ -1,3 +1,9 @@
+## [1.0.7](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.6...v1.0.7) (2025-12-04)
+
+### 🔧 Miscellaneous Changes
+
+* update scripts ([6806066](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/commit/68060665dbb9eb2a18f9ba833180e0b6c9db01cc))
+
 ## [1.0.6](https://github.com/pynickle/koishi-plugin-hoyolab-notifier/compare/v1.0.5...v1.0.6) (2025-12-04)
 
 ### 🔧 Miscellaneous Changes
